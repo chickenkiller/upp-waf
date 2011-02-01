@@ -51,7 +51,6 @@ from waflib.Tools.cxx import cxx_hook
 import re
 
 TaskGen.extension('.icpp')(cxx_hook) 
-TaskGen.extension('init')(cxx_hook) 
 
 # FIXME: Handle Upp Flags and other compiler flags correctly
 # TODO: Use 'mainconfig' section to get the default use flags (GUI, etc.)
