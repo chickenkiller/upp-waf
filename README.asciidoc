@@ -1,0 +1,82 @@
+U++ packages builder with Waf
+=============================
+Lionel Orry <lionel.orry@gmail.com>
+
+This is a single `wscript` file (think `Makefile`) to allow compilation
+of http://www.ultimatepp.org[U++] packages using the http://waf.googlecode.com[Waf]
+build system.
+
+It is currently a work in progress, but one can already compile one of the most
+complex packages so far, _theIDE_ (the U++ IDE itself).
+
+== Getting started
+
+1. Make sure you have a proper http://python.org[python] installation and a GCC or Clang C/C++ compiler.
+   There is high chance it's already the case.
+
+2. http://code.google.com/p/upp-mirror/source/checkout[Checkout the U++ sources].
+   You will need at least `uppsrc`, but it's probably more interesting to
+   checkout the `uppsrc`, `examples`, `reference`, `tutorial` and `bazaar` trees:
++
+------
+$ mkdir -p ~/upp
+$ cd ~/upp
+$ for tree in uppsrc examples reference tutorial bazaar; do svn checkout http://upp-mirror.googlecode.com/svn/trunk/$tree $tree; done
+------
+
+3. http://waf.googlecode.com/[Download the waf build system]. It's a single file,
+   the latest version is needed and can be found http://waf.googlecode.com/files/waf-1.6.2[here]:
++
+------
+$ wget -O ~/upp/waf http://waf.googlecode.com/files/waf-1.6.2
+$ chmod a+x ~/upp/waf
+------
+
+4. https://github.com/chickenkiller/upp-waf[Get the wscript from this project]. Choose your preferred method, direct download,
+  github repo snapshot or repository cloning. Make sure the `wscript` can be found in `~/upp`:
++
+------
+$ cd ~/upp
+$ git clone git://github.com/chickenkiller/upp-waf.git
+$ ln -s upp-waf/wscript wscript
+------
+
+5. Test the script:
++
+------
+$ ./waf configure                                                # <1>
+Setting top to                           : /home/lorry/upp 
+Setting out to                           : /home/lorry/upp/build 
+Checking for 'gcc' (c compiler)          : ok 
+Checking for 'g++' (c++ compiler)        : ok 
+[...]
+'configure' finished successfully (0.948s)
+$ ./waf --pkg=uppsrc/usvn list                                   # <2>
+Selected package: uppsrc/usvn
+upp_Core 
+upp_CtrlCore 
+upp_CtrlLib 
+upp_Draw 
+upp_PdfDraw 
+upp_RichText 
+upp_TextDiffCtrl 
+upp_plugin_bmp 
+upp_plugin_png 
+usvn 
+'list' finished successfully (0.164s)
+$ ./waf --pkg=uppsrc/usvn build                                 # <3>
+[see the magic operate... and cross fingers]
+------
++
+<1> Configure the waf cache (similar action to commonly found `./configure` scripts)
+<2> List the name of the dependencies that will be built for the given package (optional)
+<3> Actually build the package. The `build` keyword can be omitted, this is the default action.
+
+6. Get help. Everything is documented, even the ++wscript++-specific options like `--pkg`:
++
+------
+$ ./waf --help
+------
+
+7. Do It Yourself! And don't forget to look at the wscript code and comments. Any contribution will be very much appreciated.
+
