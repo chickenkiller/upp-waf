@@ -237,7 +237,7 @@ def configure(ctx):
 	ctx.check_cxx(lib='pthread', uselib_store='PTHREAD')
 	ctx.check_cxx(lib='Xft', uselib_store='XFT', mandatory=False)
 	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
-		ctx.check_cxx(header_name='libnotify/notify.h', lib='notify', use='GTK-X11-2.0', uselib_store='NOTIFY', mandatory=False)
+		ctx.check_cxx(header_name='libnotify/notify.h', lib='notify', use='GTK-X11-2.0', uselib_store='NOTIFY')
 	else:
 		ctx.env.UPPFLAGS += ' NOGTK'
 	if ctx.check_cfg(package='freetype2', uselib_store='FREETYPE', args=['--cflags', '--libs']):
