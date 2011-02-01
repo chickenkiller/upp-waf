@@ -233,21 +233,21 @@ def configure(ctx):
 	ctx.check_cxx(lib='z', uselib_store='Z')
 	ctx.check_cxx(lib='rt', uselib_store='RT')
 	ctx.check_cxx(lib='dl', uselib_store='DL')
-	ctx.check_cxx(lib='asound', uselib_store='ASOUND')
+	ctx.check_cxx(lib='asound', uselib_store='ASOUND', mandatory=False)
 	ctx.check_cxx(lib='pthread', uselib_store='PTHREAD')
-	ctx.check_cxx(lib='Xft', uselib_store='XFT')
+	ctx.check_cxx(lib='Xft', uselib_store='XFT', mandatory=False)
 	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
-		ctx.check_cxx(header_name='libnotify/notify.h', lib='notify', use='GTK-X11-2.0', uselib_store='NOTIFY')
+		ctx.check_cxx(header_name='libnotify/notify.h', lib='notify', use='GTK-X11-2.0', uselib_store='NOTIFY', mandatory=False)
 	else:
 		ctx.env.UPPFLAGS += ' NOGTK'
 	if ctx.check_cfg(package='freetype2', uselib_store='FREETYPE', args=['--cflags', '--libs']):
 		if ctx.check_cfg(package='fontconfig', uselib_store='FONTCONFIG', args=['--cflags', '--libs']):
 			if not ctx.env.INCLUDES_FONTCONFIG: ctx.env.INCLUDES_FONTCONFIG = []
 			ctx.env.INCLUDES_FONTCONFIG.extend(ctx.env.INCLUDES_FREETYPE)
-	ctx.check_cfg(package='libpng', uselib_store='PNG', args=['--cflags', '--libs'])
-	ctx.check_cfg(package='sdl', uselib_store='SDL', args=['--cflags', '--libs'])
+	ctx.check_cfg(package='libpng', uselib_store='PNG', args=['--cflags', '--libs'], mandatory=False)
+	ctx.check_cfg(package='sdl', uselib_store='SDL', args=['--cflags', '--libs'], mandatory=False)
 	for l in "AVUTIL AVCODEC AVFORMAT AVDEVICE SWSCALE AVCORE".split():
-		ctx.check_cxx(lib=l.lower(), uselib_store=l)
+		ctx.check_cxx(lib=l.lower(), uselib_store=l, mandatory=False)
 	ctx.env.prepend_value('CXXFLAGS', ['-x', 'c++'])
 	if ctx.options.debug:
 		ctx.env.UPPFLAGS = ctx.env.UPPFLAGS + ' DEBUG DEBUG_FULL'
