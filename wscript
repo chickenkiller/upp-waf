@@ -59,7 +59,7 @@ TaskGen.extension('init')(cxx_hook)
 # TODO:  Can we create several variants and build them all according to the final targets to create?
 # FIXME:  Where to integrate SPEED ?
 
-UPPFLAGS = 'GCC LINUX POSIX SHARED GUI ALSA'
+UPPFLAGS = 'GCC LINUX POSIX SHARED GUI'
 
 def upp_flags(flags):
 	return ['flag'+f for f in flags.split()]
