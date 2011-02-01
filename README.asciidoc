@@ -66,6 +66,8 @@ usvn
 'list' finished successfully (0.164s)
 $ ./waf --pkg=uppsrc/usvn build                                 # <3>
 [see the magic operate... and cross fingers]
+$ build/usvn <path_to_a_local_subversion_repo>
+[cross fingers again... or enter a bug in the issue tracker of upp-waf]
 ------
 +
 <1> Configure the waf cache (similar action to commonly found `./configure` scripts)
@@ -79,4 +81,132 @@ $ ./waf --help
 ------
 
 7. Do It Yourself! And don't forget to look at the wscript code and comments. Any contribution will be very much appreciated.
+
+== Tips and tricks
+
+Okay, you are lost and you want more. Here are a few more examples so that you understand better.
+
+=== I want to compile in debug mode!
+
+In the U++ context, this means :
+
+1. giving the right flags to the toolchain
+2. Setting the 'U++ uses' `DEBUG` and `DEBUG_FULL` (this is what the default Debug mode does in theIDE).
+
+Okay, so we need to reconfigure to update the cache with correct flags:
+
+------
+$ ./waf configure --debug
+------
+
+You can see the result in the cache file (it's a python dictionary):
+
+------
+$ egrep 'CXXFLAGS |UPPFLAGS ' build/c4che/_cache.py
+CXXFLAGS = ['-x', 'c++', '-O0', '-ggdb']
+UPPFLAGS = 'GCC LINUX POSIX SHARED GUI DEBUG DEBUG_FULL'
+------
+
+Cool, the `CXXFLAGS` has compiler options ready for debug, and the `DEBUG` and `DEBUG_FULL` have been put in the list of 'U++ uses'.
+From now on until your next 'configure' action, all your packages will be compiled in debug mode:
+
+------
+$ ./waf --pkg=examples/UWord -v
+------
+
+NOTE: The '-v' option allows you to actually see the commands executed by Waf. Handy when you're not sure about your configuration.
+
+=== I don't want to link against GTK nor use it.
+
+Fine. U++ framework can use X11 only on Unix platforms, even though slightly less eye-candy.
+
+Let's see what we have before:
+
+------
+$ ldd build/UWord
+	linux-gate.so.1 =>  (0x00dc7000)
+	libpthread.so.0 => /lib/libpthread.so.0 (0x0069f000)
+	libdl.so.2 => /lib/libdl.so.2 (0x00e95000)
+	libz.so.1 => /lib/libz.so.1 (0x0028b000)
+	libfontconfig.so.1 => /usr/lib/libfontconfig.so.1 (0x00caf000)
+	libpng14.so.14 => /usr/lib/libpng14.so.14 (0x005fe000)
+	libgtk-x11-2.0.so.0 => /usr/lib/libgtk-x11-2.0.so.0 (0x006b9000)
+	libgdk-x11-2.0.so.0 => /usr/lib/libgdk-x11-2.0.so.0 (0x00110000)
+	libatk-1.0.so.0 => /usr/lib/libatk-1.0.so.0 (0x00392000)
+	libgio-2.0.so.0 => /usr/lib/libgio-2.0.so.0 (0x002a0000)
+	libpangoft2-1.0.so.0 => /usr/lib/libpangoft2-1.0.so.0 (0x003b4000)
+	libpangocairo-1.0.so.0 => /usr/lib/libpangocairo-1.0.so.0 (0x001aa000)
+	libgdk_pixbuf-2.0.so.0 => /usr/lib/libgdk_pixbuf-2.0.so.0 (0x001b6000)
+	libcairo.so.2 => /usr/lib/libcairo.so.2 (0x003db000)
+	libpango-1.0.so.0 => /usr/lib/libpango-1.0.so.0 (0x00e22000)
+	libfreetype.so.6 => /usr/lib/libfreetype.so.6 (0x001d2000)
+	libgobject-2.0.so.0 => /usr/lib/libgobject-2.0.so.0 (0x00497000)
+	libgmodule-2.0.so.0 => /usr/lib/libgmodule-2.0.so.0 (0x00b1b000)
+	libgthread-2.0.so.0 => /usr/lib/libgthread-2.0.so.0 (0x00256000)
+	librt.so.1 => /lib/librt.so.1 (0x0025c000)
+	libglib-2.0.so.0 => /usr/lib/libglib-2.0.so.0 (0x00b20000)
+	libm.so.6 => /lib/libm.so.6 (0x004df000)
+	libXft.so.2 => /usr/lib/libXft.so.2 (0x00265000)
+	libnotify.so.1 => /usr/lib/libnotify.so.1 (0x00279000)
+	libstdc++.so.6 => /usr/i686-pc-linux-gnu/lib/gcc/libstdc++.so.6 (0x00e9a000)
+	libgcc_s.so.1 => /lib/libgcc_s.so.1 (0x00c70000)
+	libc.so.6 => /lib/libc.so.6 (0x00f89000)
+	libXrender.so.1 => /usr/lib/libXrender.so.1 (0x00d40000)
+	libX11.so.6 => /usr/lib/libX11.so.6 (0x03746000)
+	/lib/ld-linux.so.2 (0x00572000)
+	libexpat.so.1 => /usr/lib/libexpat.so.1 (0x00509000)
+	libXi.so.6 => /usr/lib/libXi.so.6 (0x00aed000)
+	libXrandr.so.2 => /usr/lib/libXrandr.so.2 (0x0067d000)
+	libXext.so.6 => /usr/lib/libXext.so.6 (0x0052b000)
+	libXcursor.so.1 => /usr/lib/libXcursor.so.1 (0x0053b000)
+	libXcomposite.so.1 => /usr/lib/libXcomposite.so.1 (0x00283000)
+	libXdamage.so.1 => /usr/lib/libXdamage.so.1 (0x00287000)
+	libXfixes.so.3 => /usr/lib/libXfixes.so.3 (0x003ae000)
+	libpixman-1.so.0 => /usr/lib/libpixman-1.so.0 (0x00d4a000)
+	libxcb-shm.so.0 => /usr/lib/libxcb-shm.so.0 (0x0038e000)
+	libxcb-render.so.0 => /usr/lib/libxcb-render.so.0 (0x00546000)
+	libxcb.so.1 => /usr/lib/libxcb.so.1 (0x0054f000)
+	libXau.so.6 => /usr/lib/libXau.so.6 (0x0056a000)
+	libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0x00592000)
+	libresolv.so.2 => /lib/libresolv.so.2 (0x00598000)
+	libdbus-glib-1.so.2 => /usr/lib/libdbus-glib-1.so.2 (0x005b1000)
+	libdbus-1.so.3 => /usr/lib/libdbus-1.so.3 (0x00c1e000)
+------
+
+Ouch. That's a lot indeed. Let's see what we can do:
+
+-----
+$ ./waf clean
+[...]
+$ ./waf configure --nogtk build --pkg=examples/UWord
+[...]
+'build' finished successfully
+-----
+
+Yes, we can put several actions in the command-line. So, what's linked now?
+
+------
+$ ldd build/UWord
+	linux-gate.so.1 =>  (0x00e61000)
+	libpthread.so.0 => /lib/libpthread.so.0 (0x00334000)
+	libdl.so.2 => /lib/libdl.so.2 (0x003b8000)
+	libz.so.1 => /lib/libz.so.1 (0x0029f000)
+	libfontconfig.so.1 => /usr/lib/libfontconfig.so.1 (0x00ea4000)
+	libpng14.so.14 => /usr/lib/libpng14.so.14 (0x00494000)
+	libXft.so.2 => /usr/lib/libXft.so.2 (0x00a93000)
+	libstdc++.so.6 => /usr/i686-pc-linux-gnu/lib/gcc/libstdc++.so.6 (0x00110000)
+	libm.so.6 => /lib/libm.so.6 (0x00b51000)
+	libgcc_s.so.1 => /lib/libgcc_s.so.1 (0x00d66000)
+	libc.so.6 => /lib/libc.so.6 (0x004ba000)
+	libfreetype.so.6 => /usr/lib/libfreetype.so.6 (0x00c44000)
+	libXrender.so.1 => /usr/lib/libXrender.so.1 (0x001ff000)
+	libX11.so.6 => /usr/lib/libX11.so.6 (0x006e5000)
+	/lib/ld-linux.so.2 (0x006c5000)
+	libexpat.so.1 => /usr/lib/libexpat.so.1 (0x008cb000)
+	libxcb.so.1 => /usr/lib/libxcb.so.1 (0x00d9d000)
+	libXau.so.6 => /usr/lib/libXau.so.6 (0x00dcb000)
+	libXdmcp.so.6 => /usr/lib/libXdmcp.so.6 (0x00de4000)
+------
+
+Much better!
 
