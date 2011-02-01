@@ -5,11 +5,10 @@
 # Author: Lionel Orry ( lionel DOT orry AT gmail DOT com )
 # Date: 2010-10-20
 #
-# U++ sample build script for waf 1.6.0
+# U++ sample build script for waf 1.6.x
 # 
 # This has been tested with gcc-4.4.4 and LLVM clang 2.8
 # on a Fedora 12 only.
-# Clang works only after a few corrections in uppsrc.
 #
 # Example of usage:
 #
