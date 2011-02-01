@@ -219,7 +219,7 @@ def options(ctx):
 		help='Compiles everything without GTK and with the NOGTK U++ flag')
 	ctx.add_option('--debug', action='store_true', default=False,
 		help='Compiles everything with the U++ flags DEBUG and DEBUG_FULL')
-	ctx.add_option('--pkg', default='uppsrc/ide', dest='pkg', type='string',
+	ctx.add_option('--pkg', default='', dest='pkg', type='string',
 		help="U++ package specification with assembly, ex. 'uppsrc/ide'")
 
 def configure(ctx):
@@ -261,6 +261,8 @@ def build(ctx):
 	#        corresponding libs are compiled without
 	#        Gui support (see mainconfig section in .upp)
 	pkgname = ctx.options.pkg
+	if pkgname == '' and ctx.cmd != 'clean':
+		ctx.fatal('Please select a package with the --pkg option')
 	if pkgname.endswith('/'):
 		pkgname = pkgname.rstrip('/')
 	
