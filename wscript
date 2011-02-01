@@ -113,7 +113,7 @@ def parse_pkg(path):
 		pkg_desc = pkg_f.read()
 	finally:
 		pkg_f.close()
-	pkg_str = pkg_desc.replace('\n\t',' ')# .replace('\n','')# .split(';')
+	pkg_str = pkg_desc.replace('\n\t',' ').replace('\r','')# .replace('\n','')# .split(';')
 
 	# File names
 	r = re.search(r'(?m)^file[ \n]([^;]+)',pkg_str)
@@ -266,4 +266,4 @@ def build(ctx):
 	
 	print "Selected package: %s" % pkgname
 	upp_app(ctx, pkgname)
-		
+
