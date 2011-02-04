@@ -3,7 +3,7 @@
 #############################################
 #
 # Author: Lionel Orry ( lionel DOT orry AT gmail DOT com )
-# Date: 2010-10-20
+# Date: 2011-02-04
 #
 # U++ sample build script for waf 1.6.x
 # 
