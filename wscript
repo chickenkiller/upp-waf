@@ -21,9 +21,7 @@
 #    $ ./waf --help
 #
 # 2. A package is identified by its assembly/package_name pair. Ex: 'uppsrc/ide' or
-#    'bazaar/TestScatter2'. You select a package with the '--pkg=<package>' option.
-#    If you don't specify the --pkg option, the package uppsrc/ide (TheIDE) is
-#    selected by default.
+#    'bazaar/TestScatter2'. You must select a package with the '--pkg=<package>' option.
 #
 #    $ ./waf --pkg=bazaar/PolyXMLTest build
 #
