@@ -21,14 +21,16 @@ complex packages so far, _theIDE_ (the U++ IDE itself).
 ------
 $ mkdir -p ~/upp
 $ cd ~/upp
-$ for tree in uppsrc examples reference tutorial bazaar; do svn checkout http://upp-mirror.googlecode.com/svn/trunk/$tree $tree; done
+$ for tree in uppsrc examples reference tutorial bazaar; do
+> svn checkout http://upp-mirror.googlecode.com/svn/trunk/$tree $tree
+> done
 ------
 
 3. http://waf.googlecode.com/[Download the waf build system]. It's a single file,
-   the latest version is needed and can be found http://waf.googlecode.com/files/waf-1.6.2[here]:
+   the latest version is needed and can be found http://waf.googlecode.com/files/waf-1.6.3[here]:
 +
 ------
-$ wget -O ~/upp/waf http://waf.googlecode.com/files/waf-1.6.2
+$ wget -O ~/upp/waf http://waf.googlecode.com/files/waf-1.6.3
 $ chmod a+x ~/upp/waf
 ------
 
@@ -74,7 +76,7 @@ $ build/usvn <path_to_a_local_subversion_repo>
 <2> List the name of the dependencies that will be built for the given package (optional)
 <3> Actually build the package. The `build` keyword can be omitted, this is the default action.
 
-6. Get help. Everything is documented, even the ++wscript++-specific options like `--pkg`:
+6. Get help. Everything is documented, even this project-specific options like `--pkg`, `--debug` or `--nogtk`:
 +
 ------
 $ ./waf --help
@@ -210,3 +212,4 @@ $ ldd build/UWord
 
 Much better!
 
+// vim:set syn=asciidoc:
