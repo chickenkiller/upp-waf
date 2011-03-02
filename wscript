@@ -58,8 +58,27 @@ TaskGen.extension('.icpp')(cxx_hook)
 
 UPPFLAGS = 'GCC LINUX POSIX SHARED GUI'
 
-def upp_flags(flags):
-	return ['flag'+f for f in flags.split()]
+def upp_use_flags(ctx, flags):
+	arr = []
+	for f in flags.split():
+		if not f.startswith('.'):
+			# append the uselib to the array
+			arr = arr + ['useflag_'+f]
+			# add a uselib for this flag
+			ctx.env['DEFINES_useflag_'+f] = ['flag'+f]
+	return ' '.join(arr)
+
+def upp_accept_flags(ctx, flags):
+	arr = []
+	for f in flags.split():
+		if f.startswith('.'):
+			f = f.lstrip('.')
+			# append the uselib to the array
+			arr = arr + ['acceptflag_'+f]
+			# add a uselib for this flag
+			# FIXME: add it conditionally
+			ctx.env['DEFINES_acceptflag_'+f] = ['flag'+f]
+	return ' '.join(arr)
 
 # returns: [filenames,compiler_options,uses,linker_options,upp_uses]
 def parse_pkg(path):
@@ -181,8 +200,7 @@ def upp_lib(ctx, full_pkg):
 		source = parse_result[0],
 		includes = ass + parse_result[5],
 		export_includes = ass + parse_result[5],
-		use = parse_result[2],
-		defines = upp_flags(ctx.env.UPPFLAGS),
+		use = parse_result[2] + upp_use_flags(ctx, ctx.env.UPPFLAGS),
 		cflags = parse_result[1],
 		cxxflags = parse_result[1],
 		linkflags = parse_result[3],
@@ -204,8 +222,8 @@ def upp_app(ctx, full_pkg):
 		source = parse_result[0],
 		includes = ass + parse_result[5],
 		export_includes = ass + parse_result[5],
-		use = parse_result[2],
-		defines = upp_flags(ctx.env.UPPFLAGS + ' MAIN'),
+		use = parse_result[2] + upp_use_flags(ctx, ctx.env.UPPFLAGS),
+		defines = 'flagMAIN',
 		cflags = parse_result[1],
 		cxxflags = parse_result[1],
 		linkflags = parse_result[3],
