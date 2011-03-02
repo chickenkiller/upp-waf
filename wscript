@@ -153,8 +153,9 @@ def parse_pkg(path):
 registered_libs=[]
 
 def add_upp_deps(ctx,ass,dep_pkg):
-	# For now we assume the uses always come from the uppsrc nest
-	# FIXME: find the lib_pkg assembly from a list
+	# For now we assume the uses come from the
+	# current assembly or from the uppsrc nest.
+	# FIXME: is the [current_assembly, 'uppsrc'] list enough?
 	for pkg in dep_pkg:
 		found_lib = False
 		for cur_ass in [ass, 'uppsrc']:
@@ -234,7 +235,7 @@ def configure(ctx):
 	ctx.check_cxx(lib='pthread', uselib_store='PTHREAD')
 	ctx.check_cxx(lib='Xft', uselib_store='XFT', mandatory=False)
 	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
-		ctx.check_cxx(header_name='libnotify/notify.h', lib='notify', use='GTK-X11-2.0', uselib_store='NOTIFY')
+		ctx.check_cfg(package='libnotify', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'])
 	else:
 		ctx.env.UPPFLAGS += ' NOGTK'
 	if ctx.check_cfg(package='freetype2', uselib_store='FREETYPE', args=['--cflags', '--libs']):
