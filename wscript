@@ -68,19 +68,18 @@ def upp_use_flags(ctx, flags):
 			ctx.env['DEFINES_useflag_'+f] = ['flag'+f]
 	return ' '.join(arr)
 
-def upp_accept_flags(ctx, flags):
-	arr = []
-	for f in flags.split():
+def upp_accept_defines(flags, acceptflags):
+	defs = []
+	af = acceptflags.split()
+	uf = flags.split()
+	for f in uf:
 		if f.startswith('.'):
 			f = f.lstrip('.')
-			# append the uselib to the array
-			arr = arr + ['acceptflag_'+f]
-			# add a uselib for this flag
-			# FIXME: add it conditionally
-			ctx.env['DEFINES_acceptflag_'+f] = ['flag'+f]
-	return ' '.join(arr)
+			if ('MAIN' in uf) or (f in af):
+				defs.append('flag'+f)
+	return defs
 
-# returns: [filenames,compiler_options,uses,linker_options,upp_uses]
+# returns: [file_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags]
 def parse_pkg(path):
 
 	def incond_options(pkg_str,optname):
@@ -105,6 +104,7 @@ def parse_pkg(path):
 			# transform into a python evaluable syntax
 			m_str = re.sub(r'([!]?\w+)',r'"\1" in flag_list',m_str)
 			m_str = re.sub(r'"!(\w+)"',r'"\1" not',m_str)
+			m_str = re.sub(r'!',r' and not ',m_str)
 			m_str = m_str.replace(' | ',' or ')
 			m_str = m_str.replace(' & ',' and ')
 			m_str = m_str.replace('flag_list "','flag_list and "')
@@ -125,7 +125,7 @@ def parse_pkg(path):
 	try:
 		pkg_f = open( path + "/" + path.rsplit('/',1)[1] + ".upp")
 	except:
-		return False
+		return None
 	try:
 		pkg_desc = pkg_f.read()
 	finally:
@@ -146,7 +146,7 @@ def parse_pkg(path):
 	# Conditional options: USE flags analysis
 	c_options = all_opts(pkg_str,'options')
 	#print '%s C/CXX opts: %s' % (path, c_options)
-		
+
 	## CPP defines
 	# For now, everything is in CFLAGS/CXXFLAGS: easier.
 	## others
@@ -164,10 +164,14 @@ def parse_pkg(path):
 	# Linker options
 	c_link = all_opts(pkg_str,'link')
 
+	# Accept flags
+	acceptflags = all_opts(pkg_str,'acceptflags').strip()
+	#print '%s acceptflags: %r' % (path, acceptflags)
+	
 	#import pprint
 	#pp = pprint.PrettyPrinter()
 	#pp.pprint((file_names,c_options,c_uses,c_link))
-	return file_names,c_options,c_uses,c_link,upp_uses,includes
+	return file_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags
 
 registered_libs=[]
 
@@ -188,45 +192,46 @@ def upp_lib(ctx, full_pkg):
 	if full_pkg in registered_libs:
 		return True
 	ass,pkg = full_pkg.split('/',1)
-	parse_result = parse_pkg(full_pkg)
-	if not parse_result:
+	file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(full_pkg)
+	if not file_names:
 		return False
-	
+	upp_flags = ctx.env.UPPFLAGS
 	# Add u++ deps automatically
-	add_upp_deps(ctx, ass, parse_result[4].split())
-	
+	add_upp_deps(ctx, ass, upp_uses.split())
+
 	ctx.stlib(
 		target = 'upp_' + pkg.replace('/','_'),
-		source = parse_result[0],
-		includes = ass + parse_result[5],
-		export_includes = ass + parse_result[5],
-		use = parse_result[2] + upp_use_flags(ctx, ctx.env.UPPFLAGS),
-		cflags = parse_result[1],
-		cxxflags = parse_result[1],
-		linkflags = parse_result[3],
+		source = file_names,
+		includes = ass + includes,
+		export_includes = ass + includes,
+		use = c_uses + ' ' + upp_use_flags(ctx, upp_flags),
+		defines = upp_accept_defines(upp_flags, af),
+		cflags = c_options,
+		cxxflags = c_options,
+		linkflags = c_link,
 	)
 	registered_libs.append(full_pkg)
 	return True
 
 def upp_app(ctx, full_pkg):
 	ass,pkg = full_pkg.split('/',1)
-	parse_result = parse_pkg(full_pkg)
-	if not parse_result:
+	file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(full_pkg)
+	if not file_names:
 		return False
-	
+	upp_flags = ctx.env.UPPFLAGS + ' MAIN'
 	# Add u++ deps automatically
-	add_upp_deps(ctx, ass, parse_result[4].split())
+	add_upp_deps(ctx, ass, upp_uses.split())
 
 	ctx.program(
 		target = pkg.replace('/','_'),
-		source = parse_result[0],
-		includes = ass + parse_result[5],
-		export_includes = ass + parse_result[5],
-		use = parse_result[2] + upp_use_flags(ctx, ctx.env.UPPFLAGS),
-		defines = 'flagMAIN',
-		cflags = parse_result[1],
-		cxxflags = parse_result[1],
-		linkflags = parse_result[3],
+		source = file_names,
+		includes = ass + includes,
+		export_includes = ass + includes,
+		use = c_uses + ' ' + upp_use_flags(ctx, upp_flags),
+		defines = upp_accept_defines(upp_flags, af),
+		cflags = c_options,
+		cxxflags = c_options,
+		linkflags = c_link,
 	)
 
 def options(ctx):
@@ -255,7 +260,7 @@ def configure(ctx):
 	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
 		ctx.check_cfg(package='libnotify', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'])
 	else:
-		ctx.env.UPPFLAGS += ' NOGTK'
+		ctx.env.UPPFLAGS += ' .NOGTK'
 	if ctx.check_cfg(package='freetype2', uselib_store='FREETYPE', args=['--cflags', '--libs']):
 		if ctx.check_cfg(package='fontconfig', uselib_store='FONTCONFIG', args=['--cflags', '--libs']):
 			if not ctx.env.INCLUDES_FONTCONFIG: ctx.env.INCLUDES_FONTCONFIG = []
