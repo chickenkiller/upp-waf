@@ -56,7 +56,7 @@ TaskGen.extension('.icpp')(cxx_hook)
 # TODO:  Can we create several variants and build them all according to the final targets to create?
 # FIXME:  Where to integrate SPEED ?
 
-UPPFLAGS = 'GCC LINUX POSIX SHARED GUI'
+UPPFLAGS = 'GCC LINUX POSIX SHARED'
 
 def upp_use_flags(ctx, flags):
 	arr = []
@@ -79,8 +79,8 @@ def upp_accept_defines(flags, acceptflags):
 				defs.append('flag'+f)
 	return defs
 
-# returns: [file_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags]
-def parse_pkg(path):
+# returns: [file_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags,mainconfig]
+def parse_pkg(ctx,path,is_main):
 
 	def incond_options(pkg_str,optname):
 		# find unconditional options
@@ -108,12 +108,23 @@ def parse_pkg(path):
 			m_str = m_str.replace(' | ',' or ')
 			m_str = m_str.replace(' & ',' and ')
 			m_str = m_str.replace('flag_list "','flag_list and "')
-			flag_list = UPPFLAGS.strip().split()
+			flag_list = ctx.env.UPPFLAGS.strip().split()
 			if eval(m_str):
 				# Append options
 				#print '%s must use for %s %r' % (path,optname,match[1])
 				opt_line = opt_line + ' ' + match[1]
 		return opt_line.replace('"','').strip()
+
+	def get_mainconfig(pkg_str):
+		opt_lines = re.findall(r'(?m)^mainconfig[ \n]([^;]+)',pkg_str)
+		if not len(opt_lines):
+			return None
+		configs = opt_lines[0]
+		conf_lines = configs.split(',')
+		arr = conf_lines[0].split('=')
+		if not len(arr):
+			return False
+		return arr[1].translate(None,'"').strip()
 
 	def all_opts(pkg_str,f):
 		return incond_options(pkg_str,f) + ' ' + cond_options(pkg_str,f)
@@ -125,12 +136,19 @@ def parse_pkg(path):
 	try:
 		pkg_f = open( path + "/" + path.rsplit('/',1)[1] + ".upp")
 	except:
-		return None
+		return False
 	try:
 		pkg_desc = pkg_f.read()
 	finally:
 		pkg_f.close()
 	pkg_str = pkg_desc.replace('\n\t',' ').replace('\r','')# .replace('\n','')# .split(';')
+
+	# Mainconfig
+	if is_main:
+		mc = get_mainconfig(pkg_str)
+		if(mc):
+			ctx.env.UPPFLAGS = ctx.env.UPPFLAGS + ' ' + mc
+		print 'ctx.env.UPPFLAGS is now %r' % ctx.env.UPPFLAGS
 
 	# File names
 	r = re.search(r'(?m)^file[ \n]([^;]+)',pkg_str)
@@ -192,8 +210,9 @@ def upp_lib(ctx, full_pkg):
 	if full_pkg in registered_libs:
 		return True
 	ass,pkg = full_pkg.split('/',1)
-	file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(full_pkg)
-	if not file_names:
+	try:
+		file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(ctx,full_pkg, False)
+	except:
 		return False
 	upp_flags = ctx.env.UPPFLAGS
 	# Add u++ deps automatically
@@ -215,8 +234,9 @@ def upp_lib(ctx, full_pkg):
 
 def upp_app(ctx, full_pkg):
 	ass,pkg = full_pkg.split('/',1)
-	file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(full_pkg)
-	if not file_names:
+	try:
+		file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(ctx,full_pkg, True)
+	except:
 		return False
 	upp_flags = ctx.env.UPPFLAGS + ' MAIN'
 	# Add u++ deps automatically
