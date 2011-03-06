@@ -108,7 +108,9 @@ def parse_pkg(ctx,path,is_main):
 			m_str = m_str.replace(' | ',' or ')
 			m_str = m_str.replace(' & ',' and ')
 			m_str = m_str.replace('flag_list "','flag_list and "')
-			flag_list = ctx.env.UPPFLAGS.strip().split()
+			flag_list = ctx.env.UPPFLAGS.replace('.','').strip().split()
+			#print "flag_list: %r" % flag_list
+			#print m_str
 			if eval(m_str):
 				# Append options
 				#print '%s must use for %s %r' % (path,optname,match[1])
@@ -144,7 +146,7 @@ def parse_pkg(ctx,path,is_main):
 	pkg_str = pkg_desc.replace('\n\t',' ').replace('\r','')# .replace('\n','')# .split(';')
 
 	# Mainconfig
-	if is_main:
+	if is_main and ctx.env.use_mainconfig:
 		mc = get_mainconfig(pkg_str)
 		if(mc):
 			ctx.env.UPPFLAGS = ctx.env.UPPFLAGS + ' ' + mc
@@ -263,11 +265,12 @@ def options(ctx):
 		help='Compiles everything with the U++ flags DEBUG and DEBUG_FULL')
 	ctx.add_option('--pkg', default='', dest='pkg', type='string',
 		help="U++ package specification with assembly, ex. 'uppsrc/ide'")
+	ctx.add_option('--flags', default='__use_mainconfig__', dest='flags', type='string',
+		help="U++ use flags, space-separated. ex. '--flags='GUI .NOGTK'")
 
 def configure(ctx):
 	ctx.load('compiler_c')
 	ctx.load('compiler_cxx')
-	ctx.env.UPPFLAGS = UPPFLAGS
 	ctx.env.STLIB_MARKER = ['-Wl,--whole-archive', '-Wl,-Bstatic']
 	ctx.env.SHLIB_MARKER = ['-Wl,--no-whole-archive', '-Wl,-Bdynamic']
 	ctx.check_cxx(lib='m', uselib_store='M')
@@ -276,7 +279,14 @@ def configure(ctx):
 	ctx.check_cxx(lib='dl', uselib_store='DL')
 	ctx.check_cxx(lib='asound', uselib_store='ASOUND', mandatory=False)
 	ctx.check_cxx(lib='pthread', uselib_store='PTHREAD')
+	ctx.check_cxx(lib='uuid', uselib_store='UUID')
 	ctx.check_cxx(lib='Xft', uselib_store='XFT', mandatory=False)
+	if ctx.options.flags == '__use_mainconfig__':
+		ctx.env.use_mainconfig = True
+		ctx.env.UPPFLAGS = UPPFLAGS
+	else:
+		ctx.env.use_mainconfig = False
+		ctx.env.UPPFLAGS = UPPFLAGS + ' ' + ctx.options.flags
 	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
 		ctx.check_cfg(package='libnotify', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'])
 	else:
@@ -307,7 +317,10 @@ def build(ctx):
 		ctx.fatal('Please select a package with the --pkg option')
 	if pkgname.endswith('/'):
 		pkgname = pkgname.rstrip('/')
-	
-	print "Selected package: %s" % pkgname
+	if ctx.env.use_mainconfig:
+		print "Selected package: %s using mainconfig" % pkgname
+	else:
+		print "Selected package: %s not using mainconfig" % pkgname
+
 	upp_app(ctx, pkgname)
 
