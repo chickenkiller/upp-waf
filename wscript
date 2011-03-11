@@ -132,8 +132,8 @@ def parse_pkg(ctx,path,is_main):
 		return incond_options(pkg_str,f) + ' ' + cond_options(pkg_str,f)
 
 	def good_extension(f):
-		f = f.replace('"','')
-		return f.endswith('.cpp') or f.endswith('.c') or f.endswith('.icpp')
+		f = f.replace('"','').lower()
+		return f.endswith('.cpp') or f.endswith('.c') or f.endswith('.cc') or f.endswith('.icpp')
 
 	try:
 		pkg_f = open( path + "/" + path.rsplit('/',1)[1] + ".upp")
@@ -201,7 +201,7 @@ def add_upp_deps(ctx,ass,dep_pkg):
 	# FIXME: is the [current_assembly, 'uppsrc'] list enough?
 	for pkg in dep_pkg:
 		found_lib = False
-		for cur_ass in [ass, 'uppsrc']:
+		for cur_ass in [ass, 'uppsrc', 'bazaar']:
 			found_lib = upp_lib(ctx, cur_ass + '/' + pkg)
 			if found_lib:
 				break
