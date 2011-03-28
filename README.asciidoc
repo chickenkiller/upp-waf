@@ -118,7 +118,7 @@ $ ./waf --pkg=examples/UWord -v
 
 NOTE: The '-v' option allows you to actually see the commands executed by Waf. Handy when you're not sure about your configuration.
 
-[[NOGTK]]
+anchor:NOGTK[]
 === I don't want to link against GTK nor use it.
 
 Fine. U++ framework can use X11 only on Unix platforms, even though slightly less eye-candy.
