@@ -76,7 +76,7 @@ $ build/usvn <path_to_a_local_subversion_repo>
 <2> List the name of the dependencies that will be built for the given package (optional)
 <3> Actually build the package. The `build` keyword can be omitted, this is the default action.
 
-6. Get help. Everything is documented, even this project-specific options like `--pkg`, `--debug` or `--nogtk`:
+6. Get help. Everything is documented, even this project-specific options like `--pkg`, `--debug` or <<NOGTK,`--nogtk`>>:
 +
 ------
 $ ./waf --help
@@ -118,6 +118,7 @@ $ ./waf --pkg=examples/UWord -v
 
 NOTE: The '-v' option allows you to actually see the commands executed by Waf. Handy when you're not sure about your configuration.
 
+[[NOGTK]]
 === I don't want to link against GTK nor use it.
 
 Fine. U++ framework can use X11 only on Unix platforms, even though slightly less eye-candy.
