@@ -176,8 +176,14 @@ def parse_pkg(ctx,path,is_main):
 
 	# Uses
 	upp_uses = all_opts(pkg_str,'uses').replace('\\\\','/').replace('\\','/').strip()
-	upp_c_uses = ' '.join([ 'upp_' + i.replace('/','_') for i in upp_uses.split()])
-	c_uses = upp_c_uses + ' ' + all_opts(pkg_str,'library').upper().strip()
+	upp_c_uses = [ 'upp_' + i.replace('/','_') for i in upp_uses.split()]
+	libraries = all_opts(pkg_str,'library').strip().split()
+	c_uses = ' '.join(upp_c_uses)
+	for l in libraries:
+		usename = l.upper()
+		#print 'adding %r in LIB_%s' % (l, usename)
+		ctx.env.append_unique('LIB_'+usename, l)
+		c_uses = c_uses + ' ' + usename
 	#print '%s c_uses: %s' % (path, c_uses)
 	#print '%s upp_uses: %s' % (path, upp_uses)
 
