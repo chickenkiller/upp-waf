@@ -1,6 +1,6 @@
 #!/bin/env python
 
-#############################################
+###############################################################################
 #
 # Author: Lionel Orry ( lionel DOT orry AT gmail DOT com )
 # Date: 2011-02-04
@@ -40,12 +40,14 @@
 # PS: I am a nearly absolute beginner in python, the stuff below is really crap
 #     and should be rewritten by a real python programmer who knows Waf as well.
 #
-#############################################
+###############################################################################
 
 # Customization to add .icpp to the list of
 # extensions handled by the C++ tool
-from waflib import TaskGen
-from waflib.Tools.cxx import cxx_hook
+from waflib import TaskGen, Task, Errors, Utils
+from waflib.TaskGen import feature
+from waflib.Configure import conf
+from waflib.Tools.cxx import cxx_hook,cxx
 import re
 
 TaskGen.extension('.icpp')(cxx_hook) 
@@ -57,6 +59,46 @@ TaskGen.extension('.icpp')(cxx_hook)
 # FIXME:  Where to integrate SPEED ?
 
 UPPFLAGS = 'GCC LINUX POSIX SHARED'
+
+class fake_obj(cxx):
+	"""
+	Task used for reading an object file and adding the dependency on it
+	"""
+	def runnable_status(self):
+		for t in self.run_after:
+			if not t.hasrun:
+				return Task.ASK_LATER
+
+		for x in self.outputs:
+			x.sig = Utils.h_file(x.abspath())
+		return Task.SKIP_ME
+
+@conf
+def read_object(self, name):
+	"""
+	Read a system object files, enabling a use as a local object. Will trigger a rebuild if the file changes.
+	"""
+	return self(name=name, features='fake_obj')
+
+@feature('fake_obj')
+def process_obj(self):
+	"""
+	Find the location of a foreign object file.
+	"""
+	node = None
+
+	node = self.path.find_node(self.name)
+	if(node):
+		node.sig = Utils.h_file(node.abspath())
+	else:
+		raise Errors.WafError('could not find object file %r' % self.name)
+	self.objects = [node]
+	task = self.create_task('fake_obj', [], [node])
+	self.target = self.name
+	try:
+		self.compiled_tasks.append(task)
+	except AttributeError:
+		self.compiled_tasks = [task]
 
 def upp_use_flags(ctx, flags):
 	arr = []
@@ -131,9 +173,17 @@ def parse_pkg(ctx,path,is_main):
 	def all_opts(pkg_str,f):
 		return incond_options(pkg_str,f) + ' ' + cond_options(pkg_str,f)
 
-	def good_extension(f):
+	def src_extension(f):
 		f = f.replace('"','').lower()
 		return f.endswith('.cpp') or f.endswith('.c') or f.endswith('.cc') or f.endswith('.icpp')
+
+	def obj_extension(f):
+		f = f.replace('"','').lower()
+		return f.endswith('.o')
+
+	def lib_extension(f):
+		f = f.replace('"','').lower()
+		return f.endswith('.a')
 
 	try:
 		pkg_f = open( path + "/" + path.rsplit('/',1)[1] + ".upp")
@@ -157,9 +207,26 @@ def parse_pkg(ctx,path,is_main):
 	files = r.group(1).strip().split(', ')
 	files = [ f for f in files if not f.endswith('separator') ]
 	files = [ f.split(' ',1) for f in files ]
-	files = [ a for a in files if good_extension(a[0])]
-	file_names = ' '.join([ path+'/'+f[0].replace('"','') for f in files ])
-	file_names = file_names.replace('\\','/')
+	sources = [ a for a in files if src_extension(a[0])]
+	objects = [ a for a in files if obj_extension(a[0])]
+	libs    = [ a for a in files if lib_extension(a[0])]
+	src_names = ' '.join([ path+'/'+f[0].replace('"','') for f in sources ])
+	src_names = src_names.replace('\\','/')
+	obj_files = ' '.join([ path+'/'+f[0].replace('"','') for f in objects ])
+	obj_files = obj_files.replace('\\','/').strip().split()
+	lib_files = ' '.join([ path+'/'+f[0].replace('"','') for f in libs ])
+	lib_files = lib_files.replace('\\','/').strip().split()
+
+	for i in obj_files:
+		ctx.read_object(i)
+
+	lib_names = []
+	for i in lib_files:
+		n = ctx.path.find_resource(i)
+		nn = re.sub(r'lib(.+)\.a', r'\1', n.name)
+		np = n.parent.srcpath()
+		lib_names.append(nn)
+		ctx.read_stlib(nn, [np])
 
 	# Compiler options
 
@@ -178,13 +245,14 @@ def parse_pkg(ctx,path,is_main):
 	upp_uses = all_opts(pkg_str,'uses').replace('\\\\','/').replace('\\','/').strip()
 	upp_c_uses = [ 'upp_' + i.replace('/','_') for i in upp_uses.split()]
 	libraries = all_opts(pkg_str,'library').strip().split()
-	c_uses = ' '.join(upp_c_uses)
+	c_uses = ' '.join(upp_c_uses + obj_files + lib_names)
 	for l in libraries:
 		usename = l.upper()
 		#print 'adding %r in LIB_%s' % (l, usename)
 		ctx.env.append_unique('LIB_'+usename, l)
+		print 'LIB_%s: %r' % (usename, ctx.env['LIB_'+usename])
 		c_uses = c_uses + ' ' + usename
-	#print '%s c_uses: %s' % (path, c_uses)
+	print '%s c_uses: %s' % (path, c_uses)
 	#print '%s upp_uses: %s' % (path, upp_uses)
 
 	# Linker options
@@ -196,8 +264,8 @@ def parse_pkg(ctx,path,is_main):
 	
 	#import pprint
 	#pp = pprint.PrettyPrinter()
-	#pp.pprint((file_names,c_options,c_uses,c_link))
-	return file_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags
+	#pp.pprint((source_names,c_options,c_uses,c_link))
+	return src_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags
 
 registered_libs=[]
 
@@ -223,15 +291,21 @@ def upp_lib(ctx, full_pkg):
 	except:
 		return False
 	upp_flags = ctx.env.UPPFLAGS
+
+	targetname = 'upp_' + pkg.replace('/','_')
+
+	for lf in c_link.strip().split():
+		ctx.env.append_unique('LINKFLAGS_UPPGLOBAL', lf)
+
 	# Add u++ deps automatically
 	add_upp_deps(ctx, ass, upp_uses.split())
 
 	ctx.stlib(
-		target = 'upp_' + pkg.replace('/','_'),
+		target = targetname,
 		source = file_names,
 		includes = ass + includes,
 		export_includes = ass + includes,
-		use = c_uses + ' ' + upp_use_flags(ctx, upp_flags),
+		use = c_uses + ' UPPGLOBAL ' + upp_use_flags(ctx, upp_flags),
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
 		cxxflags = c_options,
@@ -255,7 +329,7 @@ def upp_app(ctx, full_pkg):
 		source = file_names,
 		includes = ass + includes,
 		export_includes = ass + includes,
-		use = c_uses + ' ' + upp_use_flags(ctx, upp_flags),
+		use = c_uses + ' UPPGLOBAL ' + upp_use_flags(ctx, upp_flags),
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
 		cxxflags = c_options,
@@ -275,6 +349,8 @@ def options(ctx):
 		help="U++ use flags, space-separated. ex. '--flags='GUI .NOGTK'")
 
 def configure(ctx):
+	def check_ext_lib(pkg, use, mandat=False):
+		return ctx.check_cfg(package=pkg, uselib_store=use, args=['--cflags', '--libs'], mandatory=mandat)
 	ctx.load('compiler_c')
 	ctx.load('compiler_cxx')
 	ctx.env.STLIB_MARKER = ['-Wl,--whole-archive', '-Wl,-Bstatic']
@@ -293,16 +369,17 @@ def configure(ctx):
 	else:
 		ctx.env.use_mainconfig = False
 		ctx.env.UPPFLAGS = UPPFLAGS + ' ' + ctx.options.flags
-	if not ctx.options.nogtk and ctx.check_cfg(package='gtk+-2.0', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'], mandatory=False):
-		ctx.check_cfg(package='libnotify', uselib_store='GTK-X11-2.0', args=['--cflags', '--libs'])
+	if not ctx.options.nogtk and check_ext_lib('gtk+-2.0', 'GTK-X11-2.0'):
+		check_ext_lib('libnotify', 'GTK-X11-2.0', True)
 	else:
 		ctx.env.UPPFLAGS += ' .NOGTK'
-	if ctx.check_cfg(package='freetype2', uselib_store='FREETYPE', args=['--cflags', '--libs']):
-		if ctx.check_cfg(package='fontconfig', uselib_store='FONTCONFIG', args=['--cflags', '--libs']):
+	if check_ext_lib('freetype2', 'FREETYPE'):
+		if check_ext_lib('fontconfig', 'FONTCONFIG'):
 			if not ctx.env.INCLUDES_FONTCONFIG: ctx.env.INCLUDES_FONTCONFIG = []
 			ctx.env.INCLUDES_FONTCONFIG.extend(ctx.env.INCLUDES_FREETYPE)
-	ctx.check_cfg(package='libpng', uselib_store='PNG', args=['--cflags', '--libs'], mandatory=False)
-	ctx.check_cfg(package='sdl', uselib_store='SDL', args=['--cflags', '--libs'], mandatory=False)
+	check_ext_lib('libpng', 'PNG')
+	check_ext_lib('sdl', 'SDL')
+	check_ext_lib('python-2.7', 'PYTHON2.7')
 	for l in "AVUTIL AVCODEC AVFORMAT AVDEVICE SWSCALE AVCORE".split():
 		ctx.check_cxx(lib=l.lower(), uselib_store=l, mandatory=False)
 	ctx.env.prepend_value('CXXFLAGS', ['-x', 'c++'])
