@@ -27,10 +27,10 @@ $ for tree in uppsrc examples reference tutorial bazaar; do
 ------
 
 3. http://waf.googlecode.com/[Download the waf build system]. It's a single file,
-   the latest version is needed and can be found http://waf.googlecode.com/files/waf-1.6.3[here]:
+   the latest version is needed and can be found http://waf.googlecode.com/files/waf-1.6.6[here]:
 +
 ------
-$ wget -O ~/upp/waf http://waf.googlecode.com/files/waf-1.6.3
+$ wget -O ~/upp/waf http://waf.googlecode.com/files/waf-1.6.6
 $ chmod a+x ~/upp/waf
 ------
 
