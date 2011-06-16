@@ -250,9 +250,9 @@ def parse_pkg(ctx,path,is_main):
 		usename = l.upper()
 		#print 'adding %r in LIB_%s' % (l, usename)
 		ctx.env.append_unique('LIB_'+usename, l)
-		print 'LIB_%s: %r' % (usename, ctx.env['LIB_'+usename])
+		#print 'LIB_%s: %r' % (usename, ctx.env['LIB_'+usename])
 		c_uses = c_uses + ' ' + usename
-	print '%s c_uses: %s' % (path, c_uses)
+	#print '%s c_uses: %s' % (path, c_uses)
 	#print '%s upp_uses: %s' % (path, upp_uses)
 
 	# Linker options
@@ -264,7 +264,7 @@ def parse_pkg(ctx,path,is_main):
 	
 	#import pprint
 	#pp = pprint.PrettyPrinter()
-	#pp.pprint((source_names,c_options,c_uses,c_link))
+	#pp.pprint((src_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags))
 	return src_names,c_options,c_uses,c_link,upp_uses,includes,acceptflags
 
 registered_libs=[]
