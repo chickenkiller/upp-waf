@@ -48,7 +48,7 @@ from waflib import TaskGen, Task, Errors, Utils
 from waflib.TaskGen import feature
 from waflib.Configure import conf
 from waflib.Tools.cxx import cxx_hook,cxx
-import re
+import re, os
 
 TaskGen.extension('.icpp')(cxx_hook) 
 
@@ -383,6 +383,8 @@ def configure(ctx):
 	for l in "AVUTIL AVCODEC AVFORMAT AVDEVICE SWSCALE AVCORE".split():
 		ctx.check_cxx(lib=l.lower(), uselib_store=l, mandatory=False)
 	ctx.env.prepend_value('CXXFLAGS', ['-x', 'c++'])
+	try: ctx.env.append_unique('RPATH', os.environ['RPATH'])
+	except KeyError: pass
 	if ctx.options.debug:
 		ctx.env.UPPFLAGS = ctx.env.UPPFLAGS + ' DEBUG DEBUG_FULL'
 		ctx.env.append_value('CXXFLAGS', ['-O0','-ggdb'])
