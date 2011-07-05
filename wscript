@@ -108,11 +108,11 @@ def upp_use_flags(ctx, flags):
 			arr = arr + ['useflag_'+f]
 			# add a uselib for this flag
 			ctx.env['DEFINES_useflag_'+f] = ['flag'+f]
-	return ' '.join(arr)
+	return arr
 
 def upp_accept_defines(flags, acceptflags):
 	defs = []
-	af = acceptflags.split()
+	af = acceptflags
 	uf = flags.split()
 	for f in uf:
 		if f.startswith('.'):
@@ -132,13 +132,13 @@ def parse_pkg(ctx,path,is_main):
 		#        see SOLARIS in uppsrc/Core/Core.upp
 		_options = [ l.strip().replace('"','').replace(',','').split(' ') for l in opt_lines ]
 		# flatten
-		_options = " ".join([ item for sublist in _options for item in sublist])
-		#print '%s must use for %s %r' % (path,optname,_options)
+		_options = [ item for sublist in _options for item in sublist]
+		#print '%s must use (incond) for %s %r' % (path,optname,_options)
 		return _options
 
 	def cond_options(pkg_str,optname):
 		cond_opt_lines = re.findall('(?m)^' + optname + r'\((.+)\)[ \n]([^;]+)',pkg_str)
-		opt_line = ""
+		opt_line = []
 		for match in cond_opt_lines:
 			useit = False
 			m_str = match[0]
@@ -155,9 +155,10 @@ def parse_pkg(ctx,path,is_main):
 			#print m_str
 			if eval(m_str):
 				# Append options
-				#print '%s must use for %s %r' % (path,optname,match[1])
-				opt_line = opt_line + ' ' + match[1]
-		return opt_line.replace('"','').strip()
+				new_opts = match[1].replace('"','').split()
+				#print '%s must use (cond) for %s %r' % (path,optname,new_opts)
+				opt_line = opt_line + new_opts
+		return opt_line
 
 	def get_mainconfig(pkg_str):
 		opt_lines = re.findall(r'(?m)^mainconfig[ \n]([^;]+)',pkg_str)
@@ -171,7 +172,7 @@ def parse_pkg(ctx,path,is_main):
 		return arr[1].translate(None,'"').strip()
 
 	def all_opts(pkg_str,f):
-		return incond_options(pkg_str,f) + ' ' + cond_options(pkg_str,f)
+		return incond_options(pkg_str,f) + cond_options(pkg_str,f)
 
 	def src_extension(f):
 		f = f.replace('"','').lower()
@@ -207,15 +208,15 @@ def parse_pkg(ctx,path,is_main):
 	files = r.group(1).strip().split(', ')
 	files = [ f for f in files if not f.endswith('separator') ]
 	files = [ f.split(' ',1) for f in files ]
-	sources = [ a for a in files if src_extension(a[0])]
-	objects = [ a for a in files if obj_extension(a[0])]
-	libs    = [ a for a in files if lib_extension(a[0])]
-	src_names = ' '.join([ path+'/'+f[0].replace('"','') for f in sources ])
-	src_names = src_names.replace('\\','/')
-	obj_files = ' '.join([ path+'/'+f[0].replace('"','') for f in objects ])
-	obj_files = obj_files.replace('\\','/').strip().split()
-	lib_files = ' '.join([ path+'/'+f[0].replace('"','') for f in libs ])
-	lib_files = lib_files.replace('\\','/').strip().split()
+	sources = [ a for a in files if src_extension(a[0]) ]
+	objects = [ a for a in files if obj_extension(a[0]) ]
+	libs    = [ a for a in files if lib_extension(a[0]) ]
+	src_names = [ path+'/'+f[0].replace('"','') for f in sources ]
+	src_names = [ f.replace('\\','/') for f in src_names ]
+	obj_files = [ path+'/'+f[0].replace('"','') for f in objects ]
+	obj_files = [ f.replace('\\','/') for f in obj_files ]
+	lib_files = [ path+'/'+f[0].replace('"','') for f in libs ]
+	lib_files = [ f.replace('\\','/') for f in lib_files ]
 
 	for i in obj_files:
 		ctx.read_object(i)
@@ -232,34 +233,34 @@ def parse_pkg(ctx,path,is_main):
 
 	# Conditional options: USE flags analysis
 	c_options = all_opts(pkg_str,'options')
-	#print '%s C/CXX opts: %s' % (path, c_options)
+	#print '%s C/CXX opts: %r' % (path, c_options)
 
 	## CPP defines
 	# For now, everything is in CFLAGS/CXXFLAGS: easier.
 	## others
-	includes = ' ' + ' '.join([ path + '/' + i for i in all_opts(pkg_str, 'include').strip().split()])
-	#print '%s includes: %s' % (path, includes)
+	includes = [ path + '/' + i for i in all_opts(pkg_str, 'include')]
+	#print '%s includes: %r' % (path, includes)
 	
 
 	# Uses
-	upp_uses = all_opts(pkg_str,'uses').replace('\\\\','/').replace('\\','/').strip()
-	upp_c_uses = [ 'upp_' + i.replace('/','_') for i in upp_uses.split()]
-	libraries = all_opts(pkg_str,'library').strip().split()
-	c_uses = ' '.join(upp_c_uses + obj_files + lib_names)
+	upp_uses = [o.replace('\\\\','/').replace('\\','/').strip() for o in all_opts(pkg_str,'uses')]
+	upp_c_uses = [ 'upp_' + i.replace('/','_') for i in upp_uses ]
+	libraries = all_opts(pkg_str,'library')
+	c_uses = upp_c_uses + obj_files + lib_names
 	for l in libraries:
 		usename = l.upper()
 		#print 'adding %r in LIB_%s' % (l, usename)
 		ctx.env.append_unique('LIB_'+usename, l)
 		#print 'LIB_%s: %r' % (usename, ctx.env['LIB_'+usename])
-		c_uses = c_uses + ' ' + usename
-	#print '%s c_uses: %s' % (path, c_uses)
-	#print '%s upp_uses: %s' % (path, upp_uses)
+		c_uses.append(usename)
+	#print '%s c_uses: %r' % (path, c_uses)
+	#print '%s upp_uses: %r' % (path, upp_uses)
 
 	# Linker options
 	c_link = all_opts(pkg_str,'link')
 
 	# Accept flags
-	acceptflags = all_opts(pkg_str,'acceptflags').strip()
+	acceptflags = all_opts(pkg_str,'acceptflags')
 	#print '%s acceptflags: %r' % (path, acceptflags)
 	
 	#import pprint
@@ -269,13 +270,13 @@ def parse_pkg(ctx,path,is_main):
 
 registered_libs=[]
 
-def add_upp_deps(ctx,ass,dep_pkg):
+def add_upp_deps(ctx,dep_pkg):
 	# For now we assume the uses come from the
 	# current assembly or from the uppsrc nest.
 	# FIXME: is the [current_assembly, 'uppsrc'] list enough?
 	for pkg in dep_pkg:
 		found_lib = False
-		for cur_ass in [ass, 'uppsrc', 'bazaar']:
+		for cur_ass in [ctx.env.app_ass, 'uppsrc', 'bazaar']:
 			found_lib = upp_lib(ctx, cur_ass + '/' + pkg)
 			if found_lib:
 				break
@@ -294,18 +295,20 @@ def upp_lib(ctx, full_pkg):
 
 	targetname = 'upp_' + pkg.replace('/','_')
 
-	for lf in c_link.strip().split():
+	for lf in c_link:
 		ctx.env.append_unique('LINKFLAGS_UPPGLOBAL', lf)
 
 	# Add u++ deps automatically
-	add_upp_deps(ctx, ass, upp_uses.split())
+	add_upp_deps(ctx, upp_uses)
+
+	use = c_uses + ['UPPGLOBAL'] + upp_use_flags(ctx, upp_flags)
 
 	ctx.stlib(
 		target = targetname,
 		source = file_names,
-		includes = ass + includes,
-		export_includes = ass + includes,
-		use = c_uses + ' UPPGLOBAL ' + upp_use_flags(ctx, upp_flags),
+		includes = [ctx.env.app_ass, ass] + includes,
+		export_includes = [ctx.env.app_ass, ass] + includes,
+		use = use,
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
 		cxxflags = c_options,
@@ -316,20 +319,23 @@ def upp_lib(ctx, full_pkg):
 
 def upp_app(ctx, full_pkg):
 	ass,pkg = full_pkg.split('/',1)
+	ctx.env.app_ass = ass
 	try:
 		file_names,c_options,c_uses,c_link,upp_uses,includes,af = parse_pkg(ctx,full_pkg, True)
 	except:
 		return False
 	upp_flags = ctx.env.UPPFLAGS + ' MAIN'
 	# Add u++ deps automatically
-	add_upp_deps(ctx, ass, upp_uses.split())
+	add_upp_deps(ctx, upp_uses)
+
+	use = c_uses + ['UPPGLOBAL'] + upp_use_flags(ctx, upp_flags)
 
 	ctx.program(
 		target = pkg.replace('/','_'),
 		source = file_names,
-		includes = ass + includes,
-		export_includes = ass + includes,
-		use = c_uses + ' UPPGLOBAL ' + upp_use_flags(ctx, upp_flags),
+		includes = [ass] + includes,
+		export_includes = [ass] + includes,
+		use = use,
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
 		cxxflags = c_options,
