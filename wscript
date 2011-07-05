@@ -403,9 +403,9 @@ def build(ctx):
 	if pkgname.endswith('/'):
 		pkgname = pkgname.rstrip('/')
 	if ctx.env.use_mainconfig:
-		print "Selected package: %s using mainconfig" % pkgname
+		print "Selected package: %s using flags %r (mainconfig)" % (pkgname, ctx.env.UPPFLAGS)
 	else:
-		print "Selected package: %s not using mainconfig" % pkgname
+		print "Selected package: %s using flags %r (no mainconfig)" % (pkgname, ctx.env.UPPFLAGS)
 
 	upp_app(ctx, pkgname)
 
