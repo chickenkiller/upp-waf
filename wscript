@@ -201,7 +201,7 @@ def parse_pkg(ctx,path,is_main):
 		mc = get_mainconfig(pkg_str)
 		if(mc):
 			ctx.env.UPPFLAGS = ctx.env.UPPFLAGS + ' ' + mc
-		print 'ctx.env.UPPFLAGS is now %r' % ctx.env.UPPFLAGS
+		print('ctx.env.UPPFLAGS is now %r' % ctx.env.UPPFLAGS)
 
 	# File names
 	r = re.search(r'(?m)^file[ \n]([^;]+)',pkg_str)
@@ -239,7 +239,7 @@ def parse_pkg(ctx,path,is_main):
 	# For now, everything is in CFLAGS/CXXFLAGS: easier.
 	## others
 	includes = [ path + '/' + i for i in all_opts(pkg_str, 'include')]
-	#print '%s includes: %r' % (path, includes)
+	#print('%s includes: %r' % (path, includes))
 	
 
 	# Uses
@@ -281,7 +281,7 @@ def add_upp_deps(ctx,dep_pkg):
 			if found_lib:
 				break
 		if not found_lib:
-			print 'Could not find the dependency %s' % pkg
+			print('Could not find the dependency %s' % pkg)
 
 def upp_lib(ctx, full_pkg):
 	if full_pkg in registered_libs:
@@ -303,11 +303,12 @@ def upp_lib(ctx, full_pkg):
 
 	use = c_uses + ['UPPGLOBAL'] + upp_use_flags(ctx, upp_flags)
 
-	ctx.stlib(
+	includes = [ctx.env.app_ass, ass] + includes
+	lib = ctx.stlib(
 		target = targetname,
 		source = file_names,
-		includes = [ctx.env.app_ass, ass] + includes,
-		export_includes = [ctx.env.app_ass, ass] + includes,
+		includes = includes,
+		export_includes = includes,
 		use = use,
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
@@ -330,11 +331,12 @@ def upp_app(ctx, full_pkg):
 
 	use = c_uses + ['UPPGLOBAL'] + upp_use_flags(ctx, upp_flags)
 
+	includes = [ass] + includes
 	ctx.program(
 		target = pkg.replace('/','_'),
 		source = file_names,
-		includes = [ass] + includes,
-		export_includes = [ass] + includes,
+		includes = includes,
+		export_includes = includes,
 		use = use,
 		defines = upp_accept_defines(upp_flags, af),
 		cflags = c_options,
@@ -409,9 +411,10 @@ def build(ctx):
 	if pkgname.endswith('/'):
 		pkgname = pkgname.rstrip('/')
 	if ctx.env.use_mainconfig:
-		print "Selected package: %s using flags %r (mainconfig)" % (pkgname, ctx.env.UPPFLAGS)
+		print("Selected package: %s using flags %r (mainconfig)" % (pkgname, ctx.env.UPPFLAGS))
 	else:
-		print "Selected package: %s using flags %r (no mainconfig)" % (pkgname, ctx.env.UPPFLAGS)
+		print("Selected package: %s using flags %r (no mainconfig)" % (pkgname, ctx.env.UPPFLAGS))
 
 	upp_app(ctx, pkgname)
 
+# vim:set ft=python noet:
