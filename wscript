@@ -142,8 +142,8 @@ def parse_pkg(ctx,path,is_main):
 		for match in cond_opt_lines:
 			useit = False
 			m_str = match[0]
-			#print m_str
 			# transform into a python evaluable syntax
+			m_str = re.sub(r' [ ]+',r' ',m_str)
 			m_str = re.sub(r'([!]?\w+)',r'"\1" in flag_list',m_str)
 			m_str = re.sub(r'"!(\w+)"',r'"\1" not',m_str)
 			m_str = re.sub(r'!',r' and not ',m_str)
