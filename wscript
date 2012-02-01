@@ -169,7 +169,7 @@ def parse_pkg(ctx,path,is_main):
 		arr = conf_lines[0].split('=')
 		if not len(arr):
 			return False
-		return arr[1].translate(None,'"').strip()
+		return arr[1].replace('"','').strip()
 
 	def all_opts(pkg_str,f):
 		return incond_options(pkg_str,f) + cond_options(pkg_str,f)
